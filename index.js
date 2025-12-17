@@ -35,9 +35,16 @@ const port=process.env.PORT||3000
                           console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
-                        //   const database=client.db ('Decoration_Booking_DB');
+                          const database=client.db ('Decoration_Booking_DB');
 
-                        //   const databaseCollection= database.collection('Decoration')
+                          const mapLocationCollection= database.collection('locationData')
+
+
+                          app.get('/maplocation',async(req,res)=>{
+                                     
+                                   const result=await mapLocationCollection.find().toArray();
+                                   res.send(result)
+                          })
                     }
 
                     finally{
