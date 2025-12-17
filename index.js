@@ -36,14 +36,33 @@ const port=process.env.PORT||3000
 
 
                           const database=client.db ('Decoration_Booking_DB');
+                           
+                          const decorationDataCollection=database.collection('decorationPackageData')
 
                           const mapLocationCollection= database.collection('locationData')
 
-
+                      
+                    //  map API     
                           app.get('/maplocation',async(req,res)=>{
                                      
                                    const result=await mapLocationCollection.find().toArray();
                                    res.send(result)
+                          })
+
+
+                          //decoration package api
+
+                          app.get('/decorPack',async(req,res)=>{
+                             
+                            const result=await decorationDataCollection.find().toArray();
+                            res.send(result)
+                          })
+
+                          app.get('/decoration',async(req,res)=>{
+                               
+                            const result=await decorationDataCollection.find().limit(6).toArray();
+
+                            res.send(result)
                           })
                     }
 
