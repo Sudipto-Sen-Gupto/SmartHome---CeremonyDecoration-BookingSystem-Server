@@ -3,6 +3,9 @@ const express= require('express')
 const app=express();
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
+//jwt
+const admin = require("firebase-admin");
 //environment variable
  require('dotenv').config();
 
@@ -14,7 +17,42 @@ const port=process.env.PORT||3000
    app.use(express.json());
 
 
+
+      const serviceAccount = require("./smart-home-decoration-book.json");
+
+        admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+               });
    
+
+         const verifyFBToken=async(req,res,next)=>{
+               
+                const authorization= req.headers.authorization
+
+                if(!authorization){
+               return   res.status(401).send({message:'unauthorized'})
+                }
+               
+                const Token=authorization.split(' ')[1]
+
+              if(!Token){
+                return  res.status(401).send({message:'unauthorized'})
+              }
+
+             try{
+                    
+              const decode= await admin.auth().verifyIdToken(Token);
+              console.log(decode);
+              req.decoded_email=decode.email
+
+             next();
+             }   
+               catch(err){
+                     return res.status(401).send({message:'unauthorized'})
+               }
+
+         }
+
 
      const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.6pjurty.mongodb.net/?appName=Cluster0`;
 
@@ -68,7 +106,7 @@ const port=process.env.PORT||3000
 
                           // viewDetail page api
 
-                          app.get('/decorPack/:id',async(req,res)=>{
+                          app.get('/decorPack/:id',verifyFBToken,async(req,res)=>{
                                    
                                   const id=req.params.id;
 
