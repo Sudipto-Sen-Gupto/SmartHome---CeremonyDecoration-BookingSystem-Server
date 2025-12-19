@@ -78,7 +78,8 @@ const port=process.env.PORT||3000
                           const decorationDataCollection=database.collection('decorationPackageData')
 
                           const mapLocationCollection= database.collection('locationData')
-
+                          
+                          const userPackageCollection=database.collection('packageData')
                       
                     //  map API     
                           app.get('/maplocation',async(req,res)=>{
@@ -115,6 +116,13 @@ const port=process.env.PORT||3000
                                   const result=await decorationDataCollection.findOne(query);
 
                                   res.send(result);
+                          })
+
+                          app.post('/packageDetails',verifyFBToken,async(req,res)=>{
+
+                            const query=req.body;
+                            const result=await userPackageCollection.insertOne(query);
+                            res.send(result);
                           })
                     }
 
