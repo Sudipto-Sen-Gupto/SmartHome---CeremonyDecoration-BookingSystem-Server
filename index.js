@@ -2,12 +2,21 @@ const express= require('express')
 
 const app=express();
 const cors = require('cors');
+
+//mongodb
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //jwt
 const admin = require("firebase-admin");
+
+
 //environment variable
  require('dotenv').config();
+
+
+ //stripe 
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
+
 
 const port=process.env.PORT||3000
    
@@ -17,6 +26,7 @@ const port=process.env.PORT||3000
    app.use(express.json());
 
 
+console.log('Stripe key loaded:',process.env.STRIPE_SECRET);
 
       const serviceAccount = require("./smart-home-decoration-book.json");
 
@@ -148,6 +158,44 @@ const port=process.env.PORT||3000
                             const result=await userPackageCollection.deleteOne(query);
                             res.send(result);
                         })
+
+
+                        //stripe api
+
+                        app.post('/create-checkout-session',async(req,res)=>{
+
+                          const paymentInfo=req.body;
+                           const amount= parseInt(paymentInfo.totalCost) ;
+                          const session = await stripe.checkout.sessions.create({
+                                  line_items: [
+                                    {
+                                   // Provide the exact Price ID (for example, price_1234) of the product you want to sell
+                                   price_data:{
+                                           currency:'USD',
+                                            unit_amount:amount*100,
+                                           product_data:{
+                                               name:paymentInfo.packageName
+                                           }
+                                   },
+                               
+                                 quantity: 1,
+                                      },
+                                     ],
+
+                                customer_email:paymentInfo.customer_email,
+                                metadata:{
+                                    packageId:paymentInfo.packageId
+                                } ,
+                                mode: 'payment',
+                                success_url: `${process.env.SITE_DOMAIN}/dashboard/success`,
+
+                                cancel_url: `${process.env.SITE_DOMAIN}/dashboard/cancel`,
+                                })
+
+                                 console.log(session);
+                                 res.send({url:session.url})
+
+                          })
                     }
 
                     finally{
