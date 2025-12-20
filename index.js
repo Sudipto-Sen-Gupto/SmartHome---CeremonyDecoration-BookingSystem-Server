@@ -117,13 +117,37 @@ const port=process.env.PORT||3000
 
                                   res.send(result);
                           })
+                      
 
+                       //package details page   
                           app.post('/packageDetails',verifyFBToken,async(req,res)=>{
 
                             const query=req.body;
                             const result=await userPackageCollection.insertOne(query);
                             res.send(result);
                           })
+
+
+                        app.get('/packageDetails/email',verifyFBToken,async(req,res)=>{
+                                 const email=req.query.email;
+                                  
+                                 const query={};
+
+                                 if(email){
+                                  query.email=email
+                                 }
+                                 const result=await userPackageCollection.find(query).sort({createdAt:-1}).toArray();
+                                 res.send(result)
+                        })
+
+                        app.delete('/packageRemove/:id',async(req,res)=>{
+                            const id=req.params.id;
+
+                            const query={_id: new ObjectId(id)};
+
+                            const result=await userPackageCollection.deleteOne(query);
+                            res.send(result);
+                        })
                     }
 
                     finally{
