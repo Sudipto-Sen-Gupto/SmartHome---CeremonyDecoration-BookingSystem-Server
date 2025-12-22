@@ -33,7 +33,17 @@ const port=process.env.PORT||3000
         admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
                });
-   
+            
+        //tracking Id
+        function generateTrackingId() {
+  const prefix = "DECOR";
+  const timestamp = Date.now().toString(36).toUpperCase(); // time-based
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase(); // randomness
+
+  return `${prefix}-${timestamp}-${random}`;
+}
+
+
 
          const verifyFBToken=async(req,res,next)=>{
                
@@ -90,6 +100,8 @@ const port=process.env.PORT||3000
                           const mapLocationCollection= database.collection('locationData')
                           
                           const userPackageCollection=database.collection('packageData')
+
+                          const paymentHistoryCollection=database.collection('paymentHistoryData')
                       
                     //  map API     
                           app.get('/maplocation',async(req,res)=>{
@@ -184,7 +196,8 @@ const port=process.env.PORT||3000
 
                                 customer_email:paymentInfo.customer_email,
                                 metadata:{
-                                    packageId:paymentInfo.packageId
+                                    packageId:paymentInfo.packageId,
+                                    packageName:paymentInfo.packageName
                                 } ,
                                 mode: 'payment',
                                 success_url: `${process.env.SITE_DOMAIN}/dashboard/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -197,6 +210,8 @@ const port=process.env.PORT||3000
 
                           })
 
+                     
+                       const trackingId=generateTrackingId()
 
                           app.patch('/payment-success',async(req,res)=>{
                                  
@@ -204,6 +219,17 @@ const port=process.env.PORT||3000
 
                                  const session =await stripe.checkout.sessions.retrieve(sessionId)
                                  console.log(session);
+
+                                 const transactionId=session.payment_intent;
+
+                                 const query={transactionId:transactionId};
+
+                                 const paymentExit=await paymentHistoryCollection.findOne(query);
+
+                                 if(paymentExit){
+
+                                return  res.send({message:'Already exist',transactionId,trackingId:paymentExit.trackingId})
+                                 }
                                   
                                 if(session.payment_status==='paid'){
 
@@ -214,20 +240,69 @@ const port=process.env.PORT||3000
                                 const updateInfo={
                                   $set:{
                                           
-                                      payment_status:'paid'
+                                      payment_status:'paid',
+                                      trackingId:trackingId
                                   }
                                 }
 
                                 const result=await userPackageCollection.updateOne(query,updateInfo)
+                                  
+                                 const payment={
+                                        
+                                       amount:session.amount_total/100,
+                                       customerEmail:session.customer_email,
+                                       packageId:session.metadata.packageId,
+                                       packageName:session.metadata.packageName,
+                                       transactionId:session.payment_intent,
+                                       trackingId:trackingId,
+                                       paymentStatus:session.payment_status,
+                                       paidAt:new Date()}
+                                       
+                                 
 
-                                res.send(result)
+                             if(session.payment_status==='paid'){
+                                    
+                                   const resultPayment =await paymentHistoryCollection.insertOne(payment);
+                                  
+                                   res.send({success:true,modifyPackage:result,
+                                    trackingId:trackingId,
+                                    transactionId:session.payment_intent,
+                                    paymentInfo:resultPayment});
+                             }
+
+                                
                                 }
 
                                 
 
                                  res.send({success:false})
-                          })
+                           })
+
+
+                           app.get('/paymentHistory',verifyFBToken,async(req,res)=>{
+                                  
+                                  
+
+                                   const email=req.query.email;
+
+                                   
+                                   const query={}
+
+                                   if(email){
+                                      
+                                    if(email!==req.decoded_email){
+                                    return res.status(403).send({message:'forbidden'})
+                                   }
+
+                                     query.customerEmail=email;
+                                   }
+
+                                   const result=await paymentHistoryCollection.find(query).sort({paidAt:-1}).toArray();
+                                   res.send(result);
+                           })
                     }
+
+                    
 
                     finally{
 
