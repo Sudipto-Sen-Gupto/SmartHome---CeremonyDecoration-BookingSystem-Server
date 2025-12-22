@@ -26,7 +26,7 @@ const port=process.env.PORT||3000
    app.use(express.json());
 
 
-console.log('Stripe key loaded:',process.env.STRIPE_SECRET);
+// console.log('Stripe key:',process.env.STRIPE_SECRET);
 
       const serviceAccount = require("./smart-home-decoration-book.json");
 
@@ -187,7 +187,7 @@ console.log('Stripe key loaded:',process.env.STRIPE_SECRET);
                                     packageId:paymentInfo.packageId
                                 } ,
                                 mode: 'payment',
-                                success_url: `${process.env.SITE_DOMAIN}/dashboard/success`,
+                                success_url: `${process.env.SITE_DOMAIN}/dashboard/success?session_id={CHECKOUT_SESSION_ID}`,
 
                                 cancel_url: `${process.env.SITE_DOMAIN}/dashboard/cancel`,
                                 })
@@ -195,6 +195,37 @@ console.log('Stripe key loaded:',process.env.STRIPE_SECRET);
                                  console.log(session);
                                  res.send({url:session.url})
 
+                          })
+
+
+                          app.patch('/payment-success',async(req,res)=>{
+                                 
+                                 const sessionId=req.query.session_id;
+
+                                 const session =await stripe.checkout.sessions.retrieve(sessionId)
+                                 console.log(session);
+                                  
+                                if(session.payment_status==='paid'){
+
+                                       const id=session.metadata.packageId;
+
+                                const query={_id: new ObjectId(id)};
+
+                                const updateInfo={
+                                  $set:{
+                                          
+                                      payment_status:'paid'
+                                  }
+                                }
+
+                                const result=await userPackageCollection.updateOne(query,updateInfo)
+
+                                res.send(result)
+                                }
+
+                                
+
+                                 res.send({success:false})
                           })
                     }
 
