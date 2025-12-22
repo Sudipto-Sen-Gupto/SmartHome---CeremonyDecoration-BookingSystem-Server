@@ -132,8 +132,39 @@ const port=process.env.PORT||3000
                           app.post('/decorators',async(req,res)=>{
                                      
                                    const decorInfo=req.body;
+                                   decorInfo.status='pending',
+                                   decorInfo.createdAt=new Date()
+
                                    const result=await decoratorDetails.insertOne(decorInfo);
                                    res.send(result);
+                          })
+
+                          app.get('/decorators',async(req,res)=>{
+                                  const status=req.query.status;
+                                  const query={}
+
+                                  if(status){
+                                    query.status=status;
+                                  }
+
+                                  const result=await decoratorDetails.find(query).toArray();
+                                  res.send(result);
+                          })
+
+                          app.patch('/decorators/:id',async(req,res)=>{
+                               const id=req.params.id;
+                               const query={_id:new ObjectId(id)}
+
+                               const status=req.body.status;
+
+                               const updateInfo={
+                                     $set:{
+                                          status:status
+                                     }
+                               }
+
+                               const result=await decoratorDetails.updateOne(query,updateInfo);
+                               res.send(result);
                           })
                       
                     //  map API     
