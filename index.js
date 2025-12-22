@@ -101,7 +101,40 @@ const port=process.env.PORT||3000
                           
                           const userPackageCollection=database.collection('packageData')
 
-                          const paymentHistoryCollection=database.collection('paymentHistoryData')
+                          const paymentHistoryCollection=database.collection('paymentHistoryData');
+
+                          const userDetails=database.collection('userData');
+
+                          const decoratorDetails=database.collection('decoratorData');
+
+                          app.post('/users',async(req,res)=>{
+                                  
+                                   const user=req.body;
+
+                                   user.role='user';
+                                   user.createdAt=new Date();
+                                    
+                                   const email=user.email;
+
+                                   const emailExist=await userDetails.find({email})
+                                   if(emailExist){
+                                    return res.send({message:'email already exist'})
+                                   }
+
+                                   const result=await userDetails.insertOne(user);
+                                   res.send(result);
+
+                          })
+
+
+                          //decorator api
+
+                          app.post('/decorators',async(req,res)=>{
+                                     
+                                   const decorInfo=req.body;
+                                   const result=await decoratorDetails.insertOne(decorInfo);
+                                   res.send(result);
+                          })
                       
                     //  map API     
                           app.get('/maplocation',async(req,res)=>{
@@ -156,6 +189,10 @@ const port=process.env.PORT||3000
                                  const query={};
 
                                  if(email){
+
+                                  if(email!==req.decoded_email){
+                                    return res.status(403).send({message:'forbidden'})
+                                   }
                                   query.email=email
                                  }
                                  const result=await userPackageCollection.find(query).sort({createdAt:-1}).toArray();
