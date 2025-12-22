@@ -28,7 +28,11 @@ const port=process.env.PORT||3000
 
 // console.log('Stripe key:',process.env.STRIPE_SECRET);
 
-      const serviceAccount = require("./smart-home-decoration-book.json");
+      // const serviceAccount = require("./smart-home-decoration-book.json");
+          
+
+        const decoded = Buffer.from(process.env.FIREBASE_SERVICE_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
         admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
@@ -88,8 +92,8 @@ const port=process.env.PORT||3000
        async function run(){
                          
                     try{
-                          await client.connect();
-                          await client.db('admin').command({ping:1})
+                          // await client.connect();
+                          // await client.db('admin').command({ping:1})
                           console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
@@ -164,7 +168,28 @@ const port=process.env.PORT||3000
                                }
 
                                const result=await decoratorDetails.updateOne(query,updateInfo);
-                               res.send(result);
+
+                               if(status==='approved'){
+                                const email=req.body.email;
+                                const useQuery={email}
+
+                                const updateUserRole={
+                                  $set:{
+                                       role:'rider'
+                                  }
+                                }
+
+                                const updateResult=await userDetails.updateOne(useQuery,updateUserRole)
+
+                                
+
+                              return res.send({
+    decoratorUpdate: result,
+    userRoleUpdate: updateResult
+  });
+
+                               }
+                              return res.send(result);
                           })
                       
                     //  map API     
