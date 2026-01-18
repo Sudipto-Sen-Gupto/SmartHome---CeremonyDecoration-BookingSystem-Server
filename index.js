@@ -110,6 +110,16 @@ const serviceAccount = JSON.parse(decoded);
                           const userDetails=database.collection('userData');
 
                           const decoratorDetails=database.collection('decoratorData');
+                         
+                          //users api
+
+
+                            app.get('/users',async(req,res)=>{
+                               
+                                  const result=await userDetails.find().toArray();
+                                  res.send(result);
+                          })
+
 
                           app.post('/users',async(req,res)=>{
                                   
@@ -120,7 +130,7 @@ const serviceAccount = JSON.parse(decoded);
                                     
                                    const email=user.email;
 
-                                   const emailExist=await userDetails.find({email})
+                                   const emailExist=await userDetails.findOne({email})
                                    if(emailExist){
                                     return res.send({message:'email already exist'})
                                    }
@@ -128,8 +138,9 @@ const serviceAccount = JSON.parse(decoded);
                                    const result=await userDetails.insertOne(user);
                                    res.send(result);
 
-                          })
+                          });
 
+                          
 
                           //decorator api
 
@@ -155,7 +166,7 @@ const serviceAccount = JSON.parse(decoded);
                                   res.send(result);
                           })
 
-                          app.patch('/decorators/:id',async(req,res)=>{
+                          app.patch('/decorators/:id',verifyFBToken,async(req,res)=>{
                                const id=req.params.id;
                                const query={_id:new ObjectId(id)}
 
@@ -184,9 +195,9 @@ const serviceAccount = JSON.parse(decoded);
                                 
 
                               return res.send({
-    decoratorUpdate: result,
-    userRoleUpdate: updateResult
-  });
+                             decoratorUpdate: result,
+                                userRoleUpdate: updateResult
+                                });
 
                                }
                               return res.send(result);
@@ -203,9 +214,15 @@ const serviceAccount = JSON.parse(decoded);
                           //decoration package api
 
                           app.get('/decorPack',async(req,res)=>{
+
+                            const {limit=0,skip=0}=req.query;
+                            const limitNum=Number(limit);
+                            const skipNum=Number(skip);
+                            // console.log(limit,skip);
                              
-                            const result=await decorationDataCollection.find().toArray();
-                            res.send(result)
+                            const count=await decorationDataCollection.countDocuments();
+                            const result=await decorationDataCollection.find().limit(limitNum).skip(skipNum).project({description:0}).toArray();
+                            res.send({result,total:count})
                           })
 
                           app.get('/decoration',async(req,res)=>{
