@@ -121,7 +121,7 @@ const serviceAccount = JSON.parse(decoded);
                           })
 
 
-                          app.post('/users',async(req,res)=>{
+                          app.post('/usersDetail',async(req,res)=>{
                                   
                                    const user=req.body;
 
@@ -140,7 +140,39 @@ const serviceAccount = JSON.parse(decoded);
 
                           });
 
-                          
+                          app.patch('/users/:id',async(req,res)=>{
+                                   const id=req.params.id;
+                                   const query={_id: new ObjectId(id)};
+
+                                   const {role}= req.body;
+
+                                   const updateRole={
+                                        $set:{
+                                          role:role
+                                        }
+                                   }
+
+                                   const result=await userDetails.updateOne(query,updateRole)
+
+                                   res.send(result)
+                          })
+
+                          app.patch('/usersDec/:id',async(req,res)=>{
+                                        const id=req.params.id;
+                                        const query={_id:new ObjectId(id)};
+
+                                        const decorator=req.body;
+
+                                        const updateRole={
+                                          $set:{
+                                            role:decorator.role
+                                          }
+                                        }
+
+                                        const result=await userDetails.updateOne(query,updateRole)
+                                        res.send(result)
+
+                          })
 
                           //decorator api
 
@@ -186,7 +218,7 @@ const serviceAccount = JSON.parse(decoded);
 
                                 const updateUserRole={
                                   $set:{
-                                       role:'rider'
+                                       role:'decorator'
                                   }
                                 }
 
@@ -215,13 +247,15 @@ const serviceAccount = JSON.parse(decoded);
 
                           app.get('/decorPack',async(req,res)=>{
 
-                            const {limit=0,skip=0}=req.query;
+                            const {limit=0,skip=0,sort='minPrice',order='asc'}=req.query;
                             const limitNum=Number(limit);
                             const skipNum=Number(skip);
-                            // console.log(limit,skip);
+                            console.log(limit,skip,sort,order);
                              
+                            const sortOrder={}
+                             sortOrder[sort]=order==='asc'?1:-1
                             const count=await decorationDataCollection.countDocuments();
-                            const result=await decorationDataCollection.find().limit(limitNum).skip(skipNum).project({description:0}).toArray();
+                            const result=await decorationDataCollection.find().limit(limitNum).skip(skipNum).sort(sortOrder).project({description:0}).toArray();
                             res.send({result,total:count})
                           })
 
