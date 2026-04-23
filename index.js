@@ -114,12 +114,31 @@ const serviceAccount = JSON.parse(decoded);
                           //users api
 
 
-                            app.get('/users',async(req,res)=>{
-                               
-                                  const result=await userDetails.find().toArray();
-                                  res.send(result);
-                          })
+                          app.get('/users', async (req, res) => {
+  try {
+    const searchText = req.query.searchText?.trim();
+    let query = {};
 
+    if (searchText) {
+      query = {
+        $or: [
+          { name: { $regex: searchText, $options: 'i' } },
+          { email: { $regex: searchText, $options: 'i' } }
+        ]
+      };
+    }
+
+    const result = await userDetails
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .toArray();
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: 'Server error' });
+  }
+});
 
                           app.post('/usersDetail',async(req,res)=>{
                                   
@@ -140,7 +159,7 @@ const serviceAccount = JSON.parse(decoded);
 
                           });
 
-                          app.patch('/users/:id',async(req,res)=>{
+                          app.patch('/users/:id/role',async(req,res)=>{
                                    const id=req.params.id;
                                    const query={_id: new ObjectId(id)};
 
