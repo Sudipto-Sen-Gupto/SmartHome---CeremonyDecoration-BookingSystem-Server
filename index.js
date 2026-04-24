@@ -112,6 +112,19 @@ const serviceAccount = JSON.parse(decoded);
                           const decoratorDetails=database.collection('decoratorData');
                          
                           //users api
+                     
+                   const verifyAdmin=async(req,res,next)=>{
+              
+              const email=req.decoded_email;
+              const query={email}
+              const user=await userDetails.findOne(query)
+
+              if(!user || user.role !=='admin'){
+               return res.status(403).send({message:"Forbidden"})
+              }
+        
+              next()
+       }
 
 
                           app.get('/users', async (req, res) => {
@@ -159,7 +172,7 @@ const serviceAccount = JSON.parse(decoded);
 
                           });
 
-                          app.patch('/users/:id/role',async(req,res)=>{
+                          app.patch('/users/:id/role',verifyFBToken,verifyAdmin,async(req,res)=>{
                                    const id=req.params.id;
                                    const query={_id: new ObjectId(id)};
 
@@ -176,7 +189,7 @@ const serviceAccount = JSON.parse(decoded);
                                    res.send(result)
                           })
 
-                          app.patch('/usersDec/:id',async(req,res)=>{
+                          app.patch('/usersDec/:id',verifyFBToken,verifyAdmin,async(req,res)=>{
                                         const id=req.params.id;
                                         const query={_id:new ObjectId(id)};
 
@@ -191,6 +204,15 @@ const serviceAccount = JSON.parse(decoded);
                                         const result=await userDetails.updateOne(query,updateRole)
                                         res.send(result)
 
+                          })
+
+                          //role api
+
+                          app.get('/users/:email/role',verifyFBToken,verifyAdmin,async(req,res)=>{
+                                  const email=req.params.email;
+                                   const query={email}
+                                  const result=await userDetails.findOne(query)
+                                  res.send({role:result.role || 'user' })
                           })
 
                           //decorator api
@@ -368,7 +390,7 @@ const serviceAccount = JSON.parse(decoded);
                                 cancel_url: `${process.env.SITE_DOMAIN}/dashboard/cancel`,
                                 })
 
-                                 console.log(session);
+                                //  `console.log(session);`
                                  res.send({url:session.url})
 
                           })
