@@ -127,7 +127,7 @@ const serviceAccount = JSON.parse(decoded);
        }
 
 
-                          app.get('/users', async (req, res) => {
+                  app.get('/users', async (req, res) => {
   try {
     const searchText = req.query.searchText?.trim();
     let query = {};
@@ -284,22 +284,52 @@ const serviceAccount = JSON.parse(decoded);
                           })
 
 
-                          //decoration package api
+ app.get('/decorPack', async (req, res) => {
+  try {
+    const {
+      limit = 5,
+      skip = 0,
+      category,
+      search
+    } = req.query;
 
-                          app.get('/decorPack',async(req,res)=>{
+    const limitNum = parseInt(limit);
+    const skipNum = parseInt(skip);
 
-                            const {limit=0,skip=0,sort='minPrice',order='asc'}=req.query;
-                            const limitNum=Number(limit);
-                            const skipNum=Number(skip);
-                            console.log(limit,skip,sort,order);
-                             
-                            const sortOrder={}
-                             sortOrder[sort]=order==='asc'?1:-1
-                            const count=await decorationDataCollection.countDocuments();
-                            const result=await decorationDataCollection.find().limit(limitNum).skip(skipNum).sort(sortOrder).project({description:0}).toArray();
-                            res.send({result,total:count})
-                          })
+    let query = {};
 
+    // 🔍 SEARCH (title only, safer)
+    if (search && search.trim() !== '') {
+      query.title = {
+        $regex: search.trim(),
+        $options: 'i'
+      };
+    }
+
+    // 📂 CATEGORY (FIXED → case insensitive)
+    if (category && category.trim() !== '') {
+      query.category = {
+        $regex: `^${category.trim()}$`,
+        $options: 'i'
+      };
+    }
+
+    const total = await decorationDataCollection.countDocuments(query);
+
+    const result = await decorationDataCollection
+      .find(query)
+      .skip(skipNum)
+      .limit(limitNum)
+      .project({ description: 0 })
+      .toArray();
+
+    res.send({ result, total });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: 'Server error' });
+  }
+});
                           app.get('/decoration',async(req,res)=>{
                                
                             const result=await decorationDataCollection.find().limit(6).toArray();
